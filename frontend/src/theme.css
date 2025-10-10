@@ -1,0 +1,36 @@
+:root {
+  --bs-primary: #0d6efd;
+  --bs-secondary: #6f6c7d;
+  --bs-success: #198754;
+  --bs-info: #0dcaf0;
+  --bs-warning: #ffc107;
+  --bs-danger: #dc3545;
+  --bs-light: #f8f9fa;
+  --bs-dark: #212529;
+  --role-admin: var(--bs-primary);
+  --role-warden: var(--bs-info);
+  --role-student: var(--bs-success);
+}
+
+body { background: linear-gradient(135deg, #b10ad3 0%, #d80dce);
+ }
+.navbar-brand { font-weight: 700; }
+.brand-dot { width:10px; height:10px; border-radius:50%; background: var(--bs-primary); display:inline-block }
+.card-rounded { border-radius: 1rem; }
+
+/* Page header with role accent gradient */
+.page-header { background: linear-gradient(135deg, #6c757d, #343a40); color: #fff; }
+.accent-admin { background: linear-gradient(135deg, var(--bs-primary), #6610f2); }
+.accent-warden { background: linear-gradient(135deg, var(--bs-info), #0b7dda); }
+.accent-student { background: linear-gradient(135deg, var(--bs-success), #198754); }
+
+/* Room cards */
+.room-card { transition: transform .1s ease-in-out; border: none; }
+.room-card:hover { transform: translateY(-2px); }
+.room-vacant { background:#e7f5ff; }
+.room-partial { background:#8eecc5; }
+.room-occupied { background:#d5d4da; }
+.room-maint { background:#fff3cd; }
+
+/* Utilities */
+.text-muted { color: #6c6c7d !important; }
