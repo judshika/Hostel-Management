@@ -45,9 +45,6 @@ export default function NavBar() {
                     <li className="nav-item">
                       <Link className={`nav-link ${isActive('/staff') ? 'active' : ''}`} to="/staff">Staff</Link>
                     </li>
-                    <li className="nav-item">
-                      <Link className={`nav-link ${isActive('/codes') ? 'active' : ''}`} to="/codes">Manage Codes</Link>
-                    </li>
                   </>
                 )}
               </>

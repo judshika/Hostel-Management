@@ -14,7 +14,6 @@ import attendanceRoutes from './routes/attendance.js';
 import complaintRoutes from './routes/complaints.js';
 import staffRoutes from './routes/staff.js';
 import reportRoutes from './routes/reports.js';
-import codeRoutes from './routes/codes.js';
 
 dotenv.config();
 const app = express();
@@ -46,7 +45,6 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/codes', codeRoutes);
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, async () => {

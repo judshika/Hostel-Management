@@ -33,11 +33,18 @@ const upload = multer({
 });
 
 router.post('/register', upload.fields([{ name: 'profile_photo', maxCount: 1 }, { name: 'photo', maxCount: 1 }]), async (req, res) => {
-  const { role, email, password, first_name, last_name, phone, registration_code, guardian_name, guardian_phone, address, nic_number } = req.body;
-  if (!role || !email || !password || !registration_code) return res.status(400).json({ message: 'Missing fields' });
+  const { role, email, password, first_name, last_name, phone, guardian_name, guardian_phone, address, nic_number } = req.body;
+  if (!role || !email || !password) return res.status(400).json({ message: 'Missing fields' });
 
-  const [rcRows] = await pool.query('SELECT * FROM registration_codes WHERE code = :code AND role = :role AND is_active = 1', { code: registration_code, role });
-  if (!rcRows.length) return res.status(400).json({ message: 'Invalid code' });
+  // Enforce single-admin and first-user-must-be-admin rules
+  const [[adm]] = await pool.query("SELECT COUNT(*) AS c FROM users WHERE role='Admin'", {});
+  const adminExists = Number(adm?.c || 0) > 0;
+  if (adminExists && role === 'Admin') {
+    return res.status(400).json({ message: 'Admin already exists' });
+  }
+  if (!adminExists && role !== 'Admin') {
+    return res.status(400).json({ message: 'First user must be Admin' });
+  }
 
   const hash = await bcrypt.hash(password, 10);
   try {
@@ -73,9 +80,6 @@ router.post('/register', upload.fields([{ name: 'profile_photo', maxCount: 1 }, 
       );
     }
 
-    // mark registration code as used (one-time use)
-    try { await pool.query('UPDATE registration_codes SET is_active = 0 WHERE code = :code', { code: registration_code }); } catch {}
-
     const token = jwt.sign({ id: u.insertId, email, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: u.insertId, email, role, first_name, last_name, phone: phone || null, nic_number: nic_number || null, profile_photo: photoPath } });
   } catch (e) {
@@ -110,6 +114,16 @@ router.post('/password-reset', async (req, res) => {
 });
 
 export default router;
+// Query whether an Admin user already exists
+router.get('/admin-exists', async (req, res) => {
+  try {
+    const [[adm]] = await pool.query("SELECT COUNT(*) AS c FROM users WHERE role='Admin'", {});
+    const exists = Number(adm?.c || 0) > 0;
+    res.json({ exists });
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to check admin status' });
+  }
+});
 
 // Update current user's profile photo
 router.post('/profile-photo', requireAuth(['Admin','Warden','Student']), upload.single('photo'), async (req, res) => {

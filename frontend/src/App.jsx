@@ -15,7 +15,6 @@ import Attendance from './pages/Attendance'
 import Complaints from './pages/Complaints'
 import Staff from './pages/Staff'
 import RoomEdit from './pages/RoomEdit'
-import ManageCodes from './pages/ManageCodes'
 
 function HomeRouter(){
   const { user } = useAuth()
@@ -41,7 +40,6 @@ export default function App(){
         <Route path="/attendance" element={<ProtectedRoute roles={['Admin','Warden']}><Attendance/></ProtectedRoute>} />
         <Route path="/complaints" element={<ProtectedRoute roles={['Admin','Warden','Student']}><Complaints/></ProtectedRoute>} />
         <Route path="/staff" element={<ProtectedRoute roles={['Admin']}><Staff/></ProtectedRoute>} />
-        <Route path="/codes" element={<ProtectedRoute roles={['Admin']}><ManageCodes/></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

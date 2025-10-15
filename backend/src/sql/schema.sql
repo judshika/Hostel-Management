@@ -8,13 +8,6 @@ CREATE TABLE IF NOT EXISTS roles (
   name ENUM('Admin','Warden','Student') UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS registration_codes (
-  code_id INT AUTO_INCREMENT PRIMARY KEY,
-  role ENUM('Admin','Warden','Student') NOT NULL,
-  code VARCHAR(64) NOT NULL UNIQUE,
-  is_active TINYINT(1) DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -136,19 +129,6 @@ CREATE TABLE IF NOT EXISTS complaints (
   FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
   FOREIGN KEY (assigned_to_staff_id) REFERENCES staff(staff_id) ON DELETE SET NULL
 );
-
-
-INSERT INTO registration_codes (role, code, is_active)
-VALUES ('Admin','ADMIN-2025',1)
-ON DUPLICATE KEY UPDATE is_active=1;
-
-INSERT INTO registration_codes (role, code, is_active)
-VALUES ('Warden','WARDEN-2025',1)
-ON DUPLICATE KEY UPDATE is_active=1;
-
-INSERT INTO registration_codes (role, code, is_active)
-VALUES ('Student','STUDENT-2025',1)
-ON DUPLICATE KEY UPDATE is_active=1;
 
 
 

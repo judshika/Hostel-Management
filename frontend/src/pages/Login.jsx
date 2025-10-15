@@ -111,12 +111,12 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="foot-note">
+        {/* <div className="foot-note">
           <span className="muted">By continuing, you agree to our</span>{' '}
           <button type="button" className="link-btn">Terms</button>
           <span className="muted"> and </span>
           <button type="button" className="link-btn">Privacy Policy</button>
-        </div>
+        </div> */}
       </div>
 
       {/* Optional background illustration */}

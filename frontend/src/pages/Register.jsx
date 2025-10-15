@@ -7,6 +7,7 @@ import '../styles/auth.css'; // reuse login styles + meter bits added below
 
 export default function Register() {
   const [role, setRole] = useState('Student');
+  const [adminExists, setAdminExists] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
@@ -15,7 +16,6 @@ export default function Register() {
   const [phone, setPhone] = useState('');
   const [nicNumber, setNicNumber] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
-  const [code, setCode] = useState('');
   const [guardianName, setGuardianName] = useState('');
   const [guardianPhone, setGuardianPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -29,6 +29,27 @@ export default function Register() {
 
   const nav = useNavigate();
   const { setUser } = useAuth();
+
+  // Determine if Admin already exists to control role selection
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await API.get('/auth/admin-exists');
+        if (!mounted) return;
+        const exists = Boolean(data?.exists);
+        setAdminExists(exists);
+        if (!exists) setRole('Admin');
+        if (exists && role === 'Admin') setRole('Student');
+      } catch (e) {
+        // Assume admin exists on failure to avoid exposing Admin option
+        if (!mounted) return;
+        setAdminExists(true);
+        if (role === 'Admin') setRole('Student');
+      }
+    })();
+    return () => { mounted = false };
+  }, []);
 
   // --- validation ---
   const emailError = useMemo(() => {
@@ -44,12 +65,12 @@ export default function Register() {
   }, [password, password2]);
 
   const canSubmit = useMemo(() => {
-    if (!email || !password || !password2 || !code) return false;
+    if (!email || !password || !password2) return false;
     if (emailError || pwMatchError) return false;
     if (pwScore.score < 2) return false; // nudge to at least "Fair"
-    if (!agree) return false;
+   
     return !loading;
-  }, [email, password, password2, code, emailError, pwMatchError, pwScore.score, agree, loading]);
+  }, [email, password, password2, emailError, pwMatchError, pwScore.score, loading]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -65,7 +86,6 @@ export default function Register() {
       form.append('last_name', lastName);
       if (phone) form.append('phone', phone);
       if (nicNumber) form.append('nic_number', nicNumber);
-      form.append('registration_code', code);
       if (role === 'Student') {
         if (guardianName) form.append('guardian_name', guardianName);
         if (guardianPhone) form.append('guardian_phone', guardianPhone);
@@ -106,29 +126,25 @@ export default function Register() {
         {err && <Alert severity="error" className="mb-3">{err}</Alert>}
 
         <form onSubmit={submit} className="grid-2 vstack-12">
-          {/* Role + Code */}
+          {/* Role */}
           <div className="form-floating-pro">
             <select
               className="form-select form-control-pro"
               value={role}
               onChange={(e) => setRole(e.target.value)}
               required
+              disabled={!adminExists}
             >
-              <option>Student</option>
-              <option>Warden</option>
-              <option>Admin</option>
+              {!adminExists ? (
+                <option>Admin</option>
+              ) : (
+                <>
+                  <option>Student</option>
+                  <option>Warden</option>
+                </>
+              )}
             </select>
             <label>Role</label>
-          </div>
-          <div className="form-floating-pro">
-            <input
-              className="form-control form-control-pro"
-              placeholder="Registration code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              required
-            />
-            <label>Registration Code</label>
           </div>
 
           {/* Name */}
@@ -288,9 +304,6 @@ export default function Register() {
 
           {/* Agree + Submit */}
           <div className="col-span-2 actions-between">
-            <label className="remember">
-              <input type="checkbox" checked={agree} onChange={()=>setAgree(a=>!a)} /> <span>I agree to the Terms & Privacy</span>
-            </label>
             <button
               type="button"
               className="link-btn"
