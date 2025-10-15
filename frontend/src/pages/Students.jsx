@@ -1,17 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { API } from '../api';
 import PageHeader from '../components/PageHeader';
-import '../styles/students-cards.css'; // add the CSS below
+import '../styles/students-cards.css';
+import { useAuth } from '../context/AuthContext';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Grid } from '@mui/material';
 
 export default function StudentsCardView() {
   const [rows, setRows] = useState([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState(null); // student object
-  const [editing, setEditing] = useState(null); // form state { student_id, guardian_name, guardian_phone, address }
+  const [editing, setEditing] = useState(null); // form state
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [creating, setCreating] = useState(null);
+  const { user } = useAuth() || {};
 
   useEffect(() => {
     let mounted = true;
@@ -89,6 +92,18 @@ export default function StudentsCardView() {
           </div>
 
           <div className="toolbar-right">
+            {user?.role === 'Admin' && (
+              <button
+                type="button"
+                className="btn btn-sm btn-primary me-2"
+                onClick={() => setCreating({
+                  email: '', password: '', first_name: '', last_name: '', phone: '', nic_number: '',
+                  guardian_name: '', guardian_phone: '', address: ''
+                })}
+              >
+                Add Student
+              </button>
+            )}
             <button type="button" className="btn btn-sm btn-outline-primary me-2" onClick={exportCSV}>
               Export CSV
             </button>
@@ -104,7 +119,7 @@ export default function StudentsCardView() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="empty-wrap">
-            <div className="empty-illustration">👩‍🎓</div>
+            <div className="empty-illustration">🙂</div>
             <h4>No students found</h4>
             <p className="muted">Try adjusting your search or check back later.</p>
           </div>
@@ -117,6 +132,10 @@ export default function StudentsCardView() {
                 onView={() => setViewing(r)}
                 onEdit={() => setEditing({
                   student_id: r.student_id,
+                  first_name: r.first_name || '',
+                  last_name: r.last_name || '',
+                  phone: r.phone || '',
+                  nic_number: r.nic_number || '',
                   guardian_name: r.guardian_name || '',
                   guardian_phone: r.guardian_phone || '',
                   address: r.address || ''
@@ -141,9 +160,10 @@ export default function StudentsCardView() {
           <div className="alert alert-danger mt-3" role="alert">{err}</div>
         )}
 
-        {/* View modal */}
-        {viewing && (
-          <Modal onClose={() => setViewing(null)} title="Student Details">
+        {/* View dialog (MUI) */}
+        <Dialog open={Boolean(viewing)} onClose={() => setViewing(null)} fullWidth maxWidth="sm">
+          <DialogTitle>Student Details</DialogTitle>
+          <DialogContent dividers>
             <div className="vstack gap-2">
               {(() => {
                 const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/api$/, '');
@@ -154,68 +174,169 @@ export default function StudentsCardView() {
                   </div>
                 ) : null;
               })()}
-              <Field label="Name" value={`${viewing.first_name || ''} ${viewing.last_name || ''}`.trim() || '—'} />
-              <Field label="Email" value={viewing.email || '—'} />
-              <Field label="Phone" value={viewing.phone || '—'} />
-              <Field label="NIC" value={viewing.nic_number || '—'} />
-              <Field label="Guardian" value={viewing.guardian_name ? `${viewing.guardian_name}${viewing.guardian_phone ? ` (${viewing.guardian_phone})` : ''}` : '—'} />
-              <Field label="Address" value={formatAddress(viewing)} />
-              <div className="text-end">
-                <button className="btn btn-secondary" onClick={() => setViewing(null)}>Close</button>
-              </div>
+              <Field label="Name" value={`${viewing?.first_name || ''} ${viewing?.last_name || ''}`.trim() || '-'} />
+              <Field label="Email" value={viewing?.email || '-'} />
+              <Field label="Phone" value={viewing?.phone || '-'} />
+              <Field label="NIC" value={viewing?.nic_number || '-'} />
+              <Field label="Guardian" value={viewing?.guardian_name ? `${viewing.guardian_name}${viewing?.guardian_phone ? ` (${viewing.guardian_phone})` : ''}` : '-'} />
+              <Field label="Address" value={formatAddress(viewing || {})} />
             </div>
-          </Modal>
-        )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setViewing(null)}>Close</Button>
+          </DialogActions>
+        </Dialog>
 
-        {/* Edit modal */}
-        {editing && (
-          <Modal onClose={() => setEditing(null)} title="Edit Student">
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setBusy(true); setErr('');
-                try {
-                  await API.put(`/students/${editing.student_id}` , {
-                    guardian_name: editing.guardian_name?.trim() || null,
-                    guardian_phone: editing.guardian_phone?.trim() || null,
-                    address: editing.address?.trim() || null,
-                  });
-                  // sync into rows
-                  setRows(prev => prev.map(x => x.student_id === editing.student_id ? {
-                    ...x,
-                    guardian_name: editing.guardian_name,
-                    guardian_phone: editing.guardian_phone,
-                    address: editing.address,
-                  } : x));
-                  setEditing(null);
-                } catch (e2) {
-                  setErr(e2.response?.data?.message || 'Failed to update');
-                } finally { setBusy(false); }
-              }}
-              className="vstack gap-3"
-            >
-              <div>
-                <label className="form-label">Guardian Name</label>
-                <input className="form-control" value={editing.guardian_name}
-                  onChange={e => setEditing(s => ({ ...s, guardian_name: e.target.value }))} />
-              </div>
-              <div>
-                <label className="form-label">Guardian Phone</label>
-                <input className="form-control" value={editing.guardian_phone}
-                  onChange={e => setEditing(s => ({ ...s, guardian_phone: e.target.value }))} />
-              </div>
-              <div>
-                <label className="form-label">Address</label>
-                <textarea className="form-control" rows={3} value={editing.address}
-                  onChange={e => setEditing(s => ({ ...s, address: e.target.value }))} />
-              </div>
-              <div className="d-flex justify-content-end gap-2">
-                <button type="button" className="btn btn-outline-secondary" onClick={() => setEditing(null)} disabled={busy}>Cancel</button>
-                <button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
-              </div>
-            </form>
-          </Modal>
-        )}
+        {/* Create dialog (MUI) */}
+        <Dialog open={Boolean(creating && user?.role === 'Admin')} onClose={() => setCreating(null)} fullWidth maxWidth="sm">
+          <DialogTitle>Add Student</DialogTitle>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true); setErr('');
+              try {
+                const payload = {
+                  email: creating?.email?.trim(),
+                  password: creating?.password?.trim() || undefined,
+                  first_name: creating?.first_name?.trim() || null,
+                  last_name: creating?.last_name?.trim() || null,
+                  phone: creating?.phone?.trim() || null,
+                  nic_number: creating?.nic_number?.trim() || null,
+                  guardian_name: creating?.guardian_name?.trim() || null,
+                  guardian_phone: creating?.guardian_phone?.trim() || null,
+                  address: creating?.address?.trim() || null,
+                };
+                const { data } = await API.post('/students', payload);
+                const created = data?.student || data;
+                setRows(prev => [created, ...prev]);
+                if (data?.generated_password) {
+                  window.alert(`Student created. Temporary password: ${data.generated_password}`);
+                }
+                setCreating(null);
+              } catch (e2) {
+                setErr(e2.response?.data?.message || 'Failed to create student');
+              } finally { setBusy(false); }
+            }}
+          >
+            <DialogContent dividers>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="First Name" fullWidth size="small" value={creating?.first_name || ''}
+                    onChange={e => setCreating(s => ({ ...s, first_name: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="Last Name" fullWidth size="small" value={creating?.last_name || ''}
+                    onChange={e => setCreating(s => ({ ...s, last_name: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField type="email" required label="Email" fullWidth size="small" value={creating?.email || ''}
+                    onChange={e => setCreating(s => ({ ...s, email: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="Password (optional)" helperText="Leave blank to auto-generate" fullWidth size="small" value={creating?.password || ''}
+                    onChange={e => setCreating(s => ({ ...s, password: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="Phone" fullWidth size="small" value={creating?.phone || ''}
+                    onChange={e => setCreating(s => ({ ...s, phone: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="NIC" fullWidth size="small" value={creating?.nic_number || ''}
+                    onChange={e => setCreating(s => ({ ...s, nic_number: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField label="Guardian Name" fullWidth size="small" value={creating?.guardian_name || ''}
+                    onChange={e => setCreating(s => ({ ...s, guardian_name: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField label="Guardian Phone" fullWidth size="small" value={creating?.guardian_phone || ''}
+                    onChange={e => setCreating(s => ({ ...s, guardian_phone: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField label="Address" fullWidth size="small" multiline minRows={3} value={creating?.address || ''}
+                    onChange={e => setCreating(s => ({ ...s, address: e.target.value }))} />
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setCreating(null)} disabled={busy}>Cancel</Button>
+              <Button variant="contained" type="submit" disabled={busy}>{busy ? 'Creating...' : 'Create'}</Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+
+        {/* Edit dialog (MUI) */}
+        <Dialog open={Boolean(editing)} onClose={() => setEditing(null)} fullWidth maxWidth="sm">
+          <DialogTitle>Edit Student</DialogTitle>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true); setErr('');
+              try {
+                await API.put(`/students/${editing.student_id}` , {
+                  first_name: editing?.first_name?.trim() || null,
+                  last_name: editing?.last_name?.trim() || null,
+                  phone: editing?.phone?.trim() || null,
+                  nic_number: editing?.nic_number?.trim() || null,
+                  guardian_name: editing?.guardian_name?.trim() || null,
+                  guardian_phone: editing?.guardian_phone?.trim() || null,
+                  address: editing?.address?.trim() || null,
+                });
+                // sync into rows
+                setRows(prev => prev.map(x => x.student_id === editing.student_id ? {
+                  ...x,
+                  first_name: editing.first_name,
+                  last_name: editing.last_name,
+                  phone: editing.phone,
+                  nic_number: editing.nic_number,
+                  guardian_name: editing.guardian_name,
+                  guardian_phone: editing.guardian_phone,
+                  address: editing.address,
+                } : x));
+                setEditing(null);
+              } catch (e2) {
+                setErr(e2.response?.data?.message || 'Failed to update');
+              } finally { setBusy(false); }
+            }}
+          >
+            <DialogContent dividers>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="First Name" fullWidth size="small" value={editing?.first_name || ''}
+                    onChange={e => setEditing(s => ({ ...s, first_name: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="Last Name" fullWidth size="small" value={editing?.last_name || ''}
+                    onChange={e => setEditing(s => ({ ...s, last_name: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="Phone" fullWidth size="small" value={editing?.phone || ''}
+                    onChange={e => setEditing(s => ({ ...s, phone: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField label="NIC" fullWidth size="small" value={editing?.nic_number || ''}
+                    onChange={e => setEditing(s => ({ ...s, nic_number: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField label="Guardian Name" fullWidth size="small" value={editing?.guardian_name || ''}
+                    onChange={e => setEditing(s => ({ ...s, guardian_name: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField label="Guardian Phone" fullWidth size="small" value={editing?.guardian_phone || ''}
+                    onChange={e => setEditing(s => ({ ...s, guardian_phone: e.target.value }))} />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField label="Address" fullWidth size="small" multiline minRows={3} value={editing?.address || ''}
+                    onChange={e => setEditing(s => ({ ...s, address: e.target.value }))} />
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setEditing(null)} disabled={busy}>Cancel</Button>
+              <Button variant="contained" type="submit" disabled={busy}>{busy ? 'Saving...' : 'Save'}</Button>
+            </DialogActions>
+          </form>
+        </Dialog>
       </div>
     </>
   );
@@ -254,7 +375,7 @@ function StudentCard({ data, onView, onEdit, onDelete }) {
         <InfoRow icon="phone" label="Phone" value={phone} />
         <InfoRow icon="id" label="NIC" value={data?.nic_number} />
         <InfoRow icon="guardian" label="Guardian" value={
-          guardian_name ? `${guardian_name}${guardian_phone ? ` (${guardian_phone})` : ''}` : '—'
+          guardian_name ? `${guardian_name}${guardian_phone ? ` (${guardian_phone})` : ''}` : '-'
         } />
         <InfoRow
           icon="address"
@@ -265,12 +386,12 @@ function StudentCard({ data, onView, onEdit, onDelete }) {
       </div>
 
       <div className="card-actions">
-        {/* <button className="btn-ghost" type="button" onClick={onView}>
+        <button className="btn-ghost" type="button" onClick={onView}>
           <InlineIcon name="eye" /> View
         </button>
         <button className="btn-ghost" type="button" onClick={onEdit}>
           <InlineIcon name="edit" /> Edit
-        </button> */}
+        </button>
         <button className="btn-ghost danger" type="button" onClick={onDelete}>
           <InlineIcon name="trash" /> Delete
         </button>
@@ -285,8 +406,17 @@ function InfoRow({ icon, label, value, clamp = false }) {
       <InlineIcon name={icon} />
       <div className="info-content">
         <span className="info-label">{label}</span>
-        <span className="info-value">{value || '—'}</span>
+        <span className="info-value">{value || '-'}</span>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, value }) {
+  return (
+    <div>
+      <div className="text-uppercase small text-muted">{label}</div>
+      <div>{value}</div>
     </div>
   );
 }
@@ -329,33 +459,5 @@ function hashToHue(str) {
 }
 
 function formatAddress({ address, city, state, zip }) {
-  return [address, city, state, zip].filter(Boolean).join(', ') || '—';
-}
-
-/* ---------- local UI helpers ---------- */
-function Modal({ title, onClose, children }) {
-  const content = (
-    <div className="modal-lite" role="dialog" aria-modal="true">
-      <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal-card">
-        <div className="modal-head">
-          <h6 className="m-0">{title}</h6>
-          <button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Close</button>
-        </div>
-        <div className="modal-body">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-  return createPortal(content, document.body);
-}
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <div className="text-uppercase small text-muted">{label}</div>
-      <div>{value}</div>
-    </div>
-  );
+  return [address, city, state, zip].filter(Boolean).join(', ') || '-';
 }

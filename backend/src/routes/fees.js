@@ -73,10 +73,20 @@ router.post('/generate', requireAuth(['Admin','Warden']), async (req, res) => {
 
 router.get('/bills', requireAuth(['Admin','Warden']), async (req, res) => {
   const [rows] = await pool.query(`
-    SELECT b.*, u.first_name, u.last_name
-    FROM bills b 
-    JOIN students s ON s.student_id=b.student_id
-    JOIN users u ON u.id=s.user_id
+    SELECT 
+      b.*, 
+      u.first_name, 
+      u.last_name,
+      IFNULL(paidagg.paid, 0) AS paid,
+      GREATEST(0, b.total - IFNULL(paidagg.paid, 0)) AS balance
+    FROM bills b
+    JOIN students s ON s.student_id = b.student_id
+    JOIN users u ON u.id = s.user_id
+    LEFT JOIN (
+      SELECT bill_id, SUM(amount) AS paid 
+      FROM payments 
+      GROUP BY bill_id
+    ) paidagg ON paidagg.bill_id = b.bill_id
     ORDER BY b.created_at DESC
   `);
   res.json(rows);
@@ -112,8 +122,16 @@ router.get('/my', requireAuth(['Student']), async (req, res) => {
   }
   if (!stu) return res.json([]);
   const [rows] = await pool.query(
-    `SELECT b.*
+    `SELECT 
+       b.*,
+       IFNULL(paidagg.paid, 0) AS paid,
+       GREATEST(0, b.total - IFNULL(paidagg.paid, 0)) AS balance
      FROM bills b
+     LEFT JOIN (
+       SELECT bill_id, SUM(amount) AS paid
+       FROM payments
+       GROUP BY bill_id
+     ) paidagg ON paidagg.bill_id = b.bill_id
      WHERE b.student_id = :sid
      ORDER BY b.created_at DESC`, { sid: stu.student_id }
   );

@@ -1,18 +1,7 @@
-/* === Global Brand Reset === */
-:root {
-  --brand-primary: #6d28d9; /* deep violet */
-  --brand-accent: #f472b6; /* soft pink */
-  --brand-bg: #f9fafb;
-  --brand-card: #ffffff;
-  --brand-text: #111827;
-  --brand-muted: #6b7280;
-  --brand-border: #e5e7eb;
-}
-
-body {
+﻿body {
   font-family: 'Poppins', 'Inter', sans-serif;
-  background: linear-gradient(135deg, #fafafa, #f3f4f6);
-  color: var(--brand-text);
+  background: var(--bg);
+  color: var(--text);
   line-height: 1.5;
 }
 
@@ -21,7 +10,7 @@ body {
   display: grid;
   gap: 20px;
   padding: 24px;
-  background: var(--brand-bg);
+  background: var(--bg);
 }
 
 /* === Chips === */
@@ -34,8 +23,8 @@ body {
   font-size: 12px;
   font-weight: 500;
   background: rgba(249, 250, 251, 0.8);
-  color: var(--brand-muted);
-  border: 1px solid var(--brand-border);
+  color: var(--muted);
+  border: 1px solid var(--line);
   transition: all 0.2s ease;
 }
 .chip:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
@@ -49,8 +38,8 @@ body {
   gap: 18px; 
 }
 .kpi {
-  background: var(--brand-card);
-  border: 1px solid var(--brand-border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 18px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
@@ -70,13 +59,13 @@ body {
   background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
   border-radius: 18px 18px 0 0;
 }
-.kpi-label { font-size: 13px; color: var(--brand-muted); margin-bottom: 8px; }
-.kpi-value { font-size: 24px; font-weight: 700; color: var(--brand-text); }
+.kpi-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.kpi-value { font-size: 24px; font-weight: 700; color: var(--text); }
 
 /* === Cards === */
 .card-pro {
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(229,231,235,0.7);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 18px;
   padding: 20px;
   backdrop-filter: blur(10px);
@@ -104,9 +93,9 @@ body {
 .search-wrap {
   flex: 1 1 360px;
   display: flex; gap: 8px; align-items: center;
-  background: rgba(255,255,255,0.9);
+  background: var(--surface);
   border-radius: 12px;
-  border: 1px solid var(--brand-border);
+  border: 1px solid var(--line);
   padding: 8px 12px;
   box-shadow: inset 0 1px 1px rgba(0,0,0,0.02);
 }
@@ -118,8 +107,8 @@ body {
 
 /* === Segmented Buttons === */
 .segmented {
-  display: inline-flex; border: 1px solid var(--brand-border); border-radius: 12px; overflow: hidden;
-  background: rgba(255,255,255,0.9);
+  display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  background: var(--surface);
 }
 .seg-btn {
   padding: 8px 14px; font-size: 13px; font-weight: 500;
@@ -137,17 +126,17 @@ body {
   position: relative; height: 16px; width: 100%;
   border-radius: 999px; background: #f1f5f9; overflow: hidden;
 }
-.bar-p { height: 100%; background: #10b981; }
-.bar-a { height: 100%; background: #ef4444; }
+.bar-p { height: 100%; background: var(--success-600); }
+.bar-a { height: 100%; background: var(--danger-600); }
 .bar-label {
   position: absolute; inset: 0;
   display: grid; place-items: center;
   font-size: 11px; font-weight: 700;
-  color: var(--brand-text);
+  color: var(--text);
 }
 
 /* === Empty / Skeleton === */
-.empty-wrap { text-align: center; padding: 40px 0; color: var(--brand-muted); }
+.empty-wrap { text-align: center; padding: 40px 0; color: var(--muted); }
 .empty-emoji { font-size: 40px; }
 
 .skeleton {
@@ -168,15 +157,9 @@ body {
 }
 
 /* === Dark Mode === */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --brand-bg: #0f1115;
-    --brand-card: #181b23;
-    --brand-text: #e5e7eb;
-    --brand-muted: #9aa3b2;
-    --brand-border: #2a2f3a;
-  }
+
   .card-pro, .search-wrap, .segmented { background: #181b23; }
   .seg-btn.active { background: linear-gradient(135deg, #7e22ce, #db2777); }
   body { background: linear-gradient(135deg, #0f1115, #1a1d24); }
 }
+

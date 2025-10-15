@@ -121,6 +121,7 @@ router.post('/rooms', requireAuth(['Admin','Warden']), async (req, res) => {
 
 router.get('/rooms-grid', requireAuth(['Admin','Warden','Student']), async (req, res) => {
   // Compute derived status from active allocations vs capacity, unless Maintenance
+  const role = req.user?.role || 'Student';
   const [rows] = await pool.query(`
     SELECT
       r.room_id,
@@ -134,7 +135,8 @@ router.get('/rooms-grid', requireAuth(['Admin','Warden','Student']), async (req,
         WHEN IFNULL(ac.active_count, 0) = 0 THEN 'Vacant'
         ELSE 'Partial'
       END AS status,
-      IFNULL(ac.active_count, 0) AS active_count
+      IFNULL(ac.active_count, 0) AS active_count,
+      CASE WHEN :role IN ('Admin','Warden') THEN occ.occupant_names ELSE NULL END AS occupant_names
     FROM rooms r
     JOIN floors f ON f.floor_id = r.floor_id
     JOIN blocks b ON b.block_id = f.block_id
@@ -144,8 +146,18 @@ router.get('/rooms-grid', requireAuth(['Admin','Warden','Student']), async (req,
       WHERE is_active = 1
       GROUP BY room_id
     ) ac ON ac.room_id = r.room_id
+    LEFT JOIN (
+      SELECT a.room_id,
+             GROUP_CONCAT(TRIM(CONCAT(COALESCE(u.first_name,''),' ',COALESCE(u.last_name,'')))
+                          ORDER BY u.first_name SEPARATOR ', ') AS occupant_names
+      FROM allocations a
+      JOIN students s ON s.student_id = a.student_id
+      JOIN users u ON u.id = s.user_id
+      WHERE a.is_active = 1
+      GROUP BY a.room_id
+    ) occ ON occ.room_id = r.room_id
     ORDER BY b.name, f.name, r.room_number
-  `);
+  `, { role });
   res.json(rows);
 });
 

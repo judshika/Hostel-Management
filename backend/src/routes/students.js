@@ -1,8 +1,72 @@
 import express from 'express';
 import { pool } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
+
+// Create a new student (Admin only)
+router.post('/', requireAuth(['Admin']), async (req, res) => {
+  try {
+    const {
+      email,
+      password,
+      first_name,
+      last_name,
+      phone,
+      nic_number,
+      guardian_name,
+      guardian_phone,
+      address
+    } = req.body || {};
+
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    // Generate a password if not provided (12 chars, alnum)
+    const genPass = () => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+    const plain = password && String(password).length >= 6 ? String(password) : genPass();
+    const hash = await bcrypt.hash(plain, 10);
+
+    // Create user with Student role
+    const [u] = await pool.query(
+      `INSERT INTO users (role, email, password_hash, first_name, last_name, phone, nic_number)
+       VALUES ('Student', :email, :hash, :first, :last, :phone, :nic)`,
+      {
+        email,
+        hash,
+        first: first_name || null,
+        last: last_name || null,
+        phone: phone || null,
+        nic: nic_number || null,
+      }
+    );
+
+    // Create student profile row
+    await pool.query(
+      `INSERT INTO students (user_id, guardian_name, guardian_phone, address)
+       VALUES (:uid, :gname, :gphone, :addr)`,
+      {
+        uid: u.insertId,
+        gname: guardian_name || null,
+        gphone: guardian_phone || null,
+        addr: address || null,
+      }
+    );
+
+    // Return the created record (joined)
+    const [rows] = await pool.query(
+      `SELECT s.*, u.email, u.first_name, u.last_name, u.phone, u.nic_number, u.profile_photo
+       FROM students s JOIN users u ON u.id=s.user_id
+       WHERE u.id = :uid`,
+      { uid: u.insertId }
+    );
+    const created = rows && rows[0];
+    res.status(201).json({ student: created, generated_password: password ? undefined : plain });
+  } catch (e) {
+    if (e && e.code === 'ER_DUP_ENTRY') return res.status(400).json({ message: 'Email already used' });
+    res.status(500).json({ message: 'Failed to create student' });
+  }
+});
 
 // Current student's own details
 router.get('/me', requireAuth(['Student']), async (req, res) => {

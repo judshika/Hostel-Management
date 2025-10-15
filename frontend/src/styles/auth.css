@@ -9,7 +9,7 @@
   background:
     radial-gradient(1200px 600px at 100% -10%, rgba(129,140,248,0.12) 0%, transparent 60%),
     radial-gradient(800px 400px at 0% 100%, rgba(103,232,249,0.15) 0%, transparent 70%),
-    linear-gradient(180deg, #b10ad3 0%, #d80dce 100%);
+    linear-gradient(180deg, #dbbc55 0%, #52224f 100%);
   animation: bgPulse 10s ease-in-out infinite alternate;
 }
 @keyframes bgPulse {

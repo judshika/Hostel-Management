@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { API } from '../api';
 import PageHeader from '../components/PageHeader';
 import Alert from '@mui/material/Alert';
@@ -67,7 +67,12 @@ export default function StudentDashboard() {
 
   const dueMap = useMemo(() => {
     const m = {};
-    bills.forEach(b => { m[b.bill_id] = parseFloat(b.total); });
+    bills.forEach(b => {
+      const paid = Number(b.paid || 0);
+      const total = Number(b.total || 0);
+      const balance = Number(b.balance != null ? b.balance : Math.max(0, total - paid));
+      m[b.bill_id] = balance;
+    });
     return m;
   }, [bills]);
 
@@ -96,7 +101,10 @@ export default function StudentDashboard() {
 
   const startPay = (bill) => {
     setPaying(bill.bill_id);
-    setPayAmount(String(bill.total));
+    const paid = Number(bill.paid || 0);
+    const total = Number(bill.total || 0);
+    const balance = Number(bill.balance != null ? bill.balance : Math.max(0, total - paid));
+    setPayAmount(balance.toFixed(2));
     setPayMethod('Cash');
     setPayRef('');
     setPayErr('');
@@ -368,7 +376,7 @@ export default function StudentDashboard() {
                   </div>
 
                   {attBusy ? (
-                    <div className="sd-empty">Loading…</div>
+                    <div className="sd-empty">Loadingâ€¦</div>
                   ) : attView ? (
                     <div className="row g-3">
                       <div className="col-md-4">
@@ -407,7 +415,7 @@ export default function StudentDashboard() {
               <thead className="table-light">
                 <tr>
                   <th>Month</th>
-                  <th className="text-end">Total (Rs.)</th>
+                  <th className="text-end">Amount (Rs.)</th>
                   <th>Status</th>
                   <th className="text-end">Action</th>
                 </tr>
@@ -422,7 +430,12 @@ export default function StudentDashboard() {
                 ) : bills.map(b => (
                   <tr key={b.bill_id} className="sd-row">
                     <td>{formatMonth(b.month_year)}</td>
-                    <td className="text-end">{money(b.total)}</td>
+                    <td className="text-end">
+                      {money(b.total)}
+                      {b.status !== 'UNPAID' ? (
+                        <div className="small text-muted">Paid: {money(b.paid || 0)} | Due: {money(b.balance != null ? b.balance : Math.max(0, Number(b.total||0) - Number(b.paid||0)))}</div>
+                      ) : null}
+                    </td>
                     <td><span className={statusBadgeClass(b.status)}>{b.status}</span></td>
                     <td className="text-end">
                       {b.status !== 'PAID' && (
@@ -485,7 +498,7 @@ export default function StudentDashboard() {
 
                 <div className="col-12 d-flex gap-2">
                   <button className="btn btn-success" disabled={paySubmitting}>
-                    {paySubmitting ? 'Submitting…' : 'Submit Payment'}
+                    {paySubmitting ? 'Submittingâ€¦' : 'Submit Payment'}
                   </button>
                   <button
                     type="button"
@@ -540,7 +553,7 @@ export default function StudentDashboard() {
         </DialogContent>
         <DialogActions>
           <Button onClick={()=>setEditOpen(false)} disabled={editBusy}>Cancel</Button>
-          <Button onClick={submitEdit} variant="contained" disabled={editBusy}>{editBusy ? 'Saving…' : 'Save'}</Button>
+          <Button onClick={submitEdit} variant="contained" disabled={editBusy}>{editBusy ? 'Savingâ€¦' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
     </>
@@ -562,3 +575,4 @@ function Bar({ ratio, present, absent }) {
     </div>
   );
 }
+

@@ -38,6 +38,11 @@ export default function RoomGrid({ rooms: roomsProp }){
                 <div className="fw-bold">#{r.room_number}</div>
                 <div className="small">{typeof r.active_count === 'number' ? `${r.active_count}/${r.capacity}` : `Cap: ${r.capacity}`}</div>
                 <span className={`badge bg-${badge} mt-1`}>{r.status}</span>
+                {(user && (user.role==='Admin' || user.role==='Warden') && r.occupant_names) ? (
+                  <div className="small mt-1 text-truncate" title={r.occupant_names} style={{maxWidth:'100%'}}>
+                    {r.occupant_names}
+                  </div>
+                ) : null}
                 {user && (user.role==='Admin' || user.role==='Warden') && (
                   <div className="mt-2">
                     <Link to={`/rooms/${r.room_id}/edit`} className="btn btn-sm btn-light">Edit</Link>

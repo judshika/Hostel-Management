@@ -264,7 +264,7 @@ export default function Fees() {
                     <tr key={b.bill_id} className="row-hover">
                       <td>{b.first_name} {b.last_name}</td>
                       <td>{b.month_year}</td>
-                      <td className="text-end">{MONEY(b.total)}</td>
+                      <td className="text-end">{MONEY(b.total)}{b.status !== 'UNPAID' ? ` (Paid: ${MONEY(b.paid || 0)} | Due: ${MONEY(b.balance ?? Math.max(0, Number(b.total||0) - Number(b.paid||0)))})` : ''}</td>
                       <td>
                         <span className={`badge status ${b.status.toLowerCase()}`}>{b.status}</span>
                       </td>
@@ -272,7 +272,7 @@ export default function Fees() {
                         {b.status !== 'PAID' && (
                           <button
                             className="btn btn-sm btn-outline-primary"
-                            onClick={() => setPay({ bill_id: b.bill_id, amount: b.total, method: 'Cash', reference: '' })}
+                            onClick={() => setPay({ bill_id: b.bill_id, amount: (b.balance ?? Math.max(0, Number(b.total||0) - Number(b.paid||0))).toFixed(2), method: 'Cash', reference: '' })}
                           >
                             Record Payment
                           </button>
