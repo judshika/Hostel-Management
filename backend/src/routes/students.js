@@ -283,7 +283,7 @@ router.put(
           // In-app notifications
           await notifyRoles(rolesEnv, {
             title: `Student updated profile: ${studentName}`,
-            body: updatedKeys ? `Fields: ${updatedKeys}` : '',
+            //body: updatedKeys ? `Fields: ${updatedKeys}` : '',
             link: '/students',
           });
         } catch (err) {
