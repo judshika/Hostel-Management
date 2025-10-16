@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
+import { sendEmail, templates } from '../routes/email.js';
 
 const router = express.Router();
 
@@ -17,6 +18,32 @@ router.post('/', requireAuth(['Student']), async (req, res) => {
     'INSERT INTO complaints (student_id, title, description, photo_url) VALUES (:sid,:t,:d,:p)',
     { sid: stu.student_id, t: title, d: description || null, p: photo_url || null }
   );
+
+  // Fire-and-forget notification to Admins and Wardens via email
+  (async () => {
+    try {
+      // fetch student user details
+      const [[u]] = await pool.query(
+        'SELECT first_name, last_name, email FROM users WHERE id=:id',
+        { id: req.user.id }
+      );
+      const studentName = `${u?.first_name || ''} ${u?.last_name || ''}`.trim() || 'Student';
+      const studentEmail = u?.email || '';
+      const createdAt = new Date().toISOString();
+      const mail = templates.complaintNew({ title, studentName, studentEmail, createdAt });
+
+      const [admins] = await pool.query(
+        "SELECT email FROM users WHERE role IN ('Admin','Warden') AND is_active=1 AND email IS NOT NULL"
+      );
+      const list = (admins || []).map(r => r.email).filter(Boolean);
+      if (list.length > 0) {
+        await sendEmail({ to: list.join(','), ...mail });
+      }
+    } catch (err) {
+      console.error('Failed to send complaint notification email:', err.message);
+    }
+  })();
+
   res.json({ complaint_id: r.insertId });
 });
 
@@ -70,6 +97,30 @@ router.put('/:id/status', requireAuth(['Admin','Warden']), async (req, res) => {
     'UPDATE complaints SET status=:s, assigned_to_staff_id=:aid, updated_at=NOW() WHERE complaint_id=:id',
     { s: status, aid: assigned_to_staff_id || null, id }
   );
+
+  // If resolved, notify the student who created it
+  if (String(status) === 'Resolved') {
+    (async () => {
+      try {
+        const [[c]] = await pool.query(
+          `SELECT c.title, c.student_id, u.email, u.first_name, u.last_name
+           FROM complaints c
+           JOIN students s ON s.student_id=c.student_id
+           JOIN users u ON u.id=s.user_id
+           WHERE c.complaint_id=:id`,
+          { id }
+        );
+        if (c && c.email) {
+          const studentName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Student';
+          const mail = templates.complaintResolved({ title: c.title, studentName });
+          await sendEmail({ to: c.email, ...mail });
+        }
+      } catch (err) {
+        console.error('Failed to send complaint resolved email:', err.message);
+      }
+    })();
+  }
+
   res.json({ message: 'Updated' });
 });
 

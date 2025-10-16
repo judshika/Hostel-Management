@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { API } from '../api';
 import PageHeader from '../components/PageHeader';
 import '../styles/attendance.css';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 
 export default function Attendance() {
   const [summary, setSummary] = useState([]);
@@ -69,6 +70,61 @@ export default function Attendance() {
     });
     return rows;
   }, [summary, q, sort]);
+
+  // DataGrid rows and columns
+  const dgRows = useMemo(() => {
+    return filtered.map((r) => {
+      const presentDay = Number(r.present_day || 0);
+      const absentDay = Number(r.absent_day || 0);
+      const presentNight = Number(r.present_night || 0);
+      const absentNight = Number(r.absent_night || 0);
+      const presentTotal = presentDay + presentNight;
+      const absentTotal = absentDay + absentNight;
+      const total = presentTotal + absentTotal;
+      const rate = total > 0 ? presentTotal / total : 0;
+      return {
+        id: `${r.student_id}-${r.ym || r.date || month}`,
+        student_id: r.student_id,
+        name: r.name,
+        monthStr: r.ym || r.date || month,
+        present_day: presentDay,
+        absent_day: absentDay,
+        present_night: presentNight,
+        absent_night: absentNight,
+        present_total: presentTotal,
+        absent_total: absentTotal,
+        rate,
+      };
+    });
+  }, [filtered, month]);
+
+  const dgColumns = useMemo(() => {
+    return [
+      { field: 'name', headerName: 'Student', flex: 1, minWidth: 200 },
+      { field: 'monthStr', headerName: 'Month', width: 140 },
+      { field: 'present_day', headerName: 'Day Present', type: 'number', width: 130, align: 'right', headerAlign: 'right' },
+      { field: 'absent_day', headerName: 'Day Absent', type: 'number', width: 120, align: 'right', headerAlign: 'right' },
+      { field: 'present_night', headerName: 'Night Present', type: 'number', width: 140, align: 'right', headerAlign: 'right' },
+      { field: 'absent_night', headerName: 'Night Absent', type: 'number', width: 130, align: 'right', headerAlign: 'right' },
+      {
+        field: 'rate',
+        headerName: 'Overall Attendance',
+        sortable: true,
+        width: 220,
+        renderCell: (params) => {
+          const p = Number(params.row.present_total || 0);
+          const a = Number(params.row.absent_total || 0);
+          const total = p + a;
+          const ratio = total > 0 ? p / total : 0;
+          return (
+            <div style={{ width: '100%' }}>
+              <Bar ratio={ratio} present={p} absent={a} />
+            </div>
+          );
+        },
+      },
+    ];
+  }, []);
 
   const kpi = useMemo(() => {
     const totalStudents = summary.length;
@@ -289,61 +345,23 @@ export default function Attendance() {
       <p className="muted">Try a different month or clear the search.</p>
     </div>
   ) : (
-    <div className="table-responsive">
-      <table className="table mb-0 align-middle">
-        <thead className="table-light">
-          <tr>
-            <th>Student</th>
-            <th>Month</th>
-            <th className="text-end">Day Present</th>
-            <th className="text-end">Day Absent</th>
-            <th className="text-end">Night Present</th>
-            <th className="text-end">Night Absent</th>
-            <th style={{ width: 160 }}>Overall Attendance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(r => {
-            const totalPresent = Number(r.present_day || 0) + Number(r.present_night || 0);
-            const totalAbsent = Number(r.absent_day || 0) + Number(r.absent_night || 0);
-            const total = totalPresent + totalAbsent;
-            const rate = total > 0 ? totalPresent / total : 0;
-
-            return (
-              <tr key={r.student_id + r.ym} className="row-hover">
-                <td>{r.name}</td>
-               <td>{r.date}</td>
-
-                <td className="text-end">{r.present_day || 0}</td>
-                <td className="text-end">{r.absent_day || 0}</td>
-                <td className="text-end">{r.present_night || 0}</td>
-                <td className="text-end">{r.absent_night || 0}</td>
-                <td>
-                  <Bar ratio={rate} present={totalPresent} absent={totalAbsent} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr>
-            <th colSpan={2}>Totals</th>
-            <th className="text-end">
-              {filtered.reduce((s, r) => s + Number(r.present_day || 0), 0)}
-            </th>
-            <th className="text-end">
-              {filtered.reduce((s, r) => s + Number(r.absent_day || 0), 0)}
-            </th>
-            <th className="text-end">
-              {filtered.reduce((s, r) => s + Number(r.present_night || 0), 0)}
-            </th>
-            <th className="text-end">
-              {filtered.reduce((s, r) => s + Number(r.absent_night || 0), 0)}
-            </th>
-            <th></th>
-          </tr>
-        </tfoot>
-      </table>
+    <div style={{ width: '100%' }}>
+      <DataGrid
+        autoHeight
+        rows={dgRows}
+        columns={dgColumns}
+        loading={busy}
+        density="compact"
+        disableRowSelectionOnClick
+        getRowId={(row) => row.id}
+        pageSizeOptions={[10, 25, 50, 100]}
+        initialState={{
+          pagination: { paginationModel: { pageSize: 25, page: 0 } },
+          sorting: { sortModel: [{ field: 'absent_total', sort: 'desc' }] },
+        }}
+        slots={{ toolbar: GridToolbar }}
+        slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 300 } } }}
+      />
     </div>
   )}
 </section>

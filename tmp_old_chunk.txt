@@ -1,0 +1,58 @@
+    <div className="table-responsive">
+      <table className="table mb-0 align-middle">
+        <thead className="table-light">
+          <tr>
+            <th>Student</th>
+            <th>Month</th>
+            <th className="text-end">Day Present</th>
+            <th className="text-end">Day Absent</th>
+            <th className="text-end">Night Present</th>
+            <th className="text-end">Night Absent</th>
+            <th style={{ width: 160 }}>Overall Attendance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(r => {
+            const totalPresent = Number(r.present_day || 0) + Number(r.present_night || 0);
+            const totalAbsent = Number(r.absent_day || 0) + Number(r.absent_night || 0);
+            const total = totalPresent + totalAbsent;
+            const rate = total > 0 ? totalPresent / total : 0;
+
+            return (
+              <tr key={r.student_id + r.ym} className="row-hover">
+                <td>{r.name}</td>
+               <td>{r.date}</td>
+
+                <td className="text-end">{r.present_day || 0}</td>
+                <td className="text-end">{r.absent_day || 0}</td>
+                <td className="text-end">{r.present_night || 0}</td>
+                <td className="text-end">{r.absent_night || 0}</td>
+                <td>
+                  <Bar ratio={rate} present={totalPresent} absent={totalAbsent} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colSpan={2}>Totals</th>
+            <th className="text-end">
+              {filtered.reduce((s, r) => s + Number(r.present_day || 0), 0)}
+            </th>
+            <th className="text-end">
+              {filtered.reduce((s, r) => s + Number(r.absent_day || 0), 0)}
+            </th>
+            <th className="text-end">
+              {filtered.reduce((s, r) => s + Number(r.present_night || 0), 0)}
+            </th>
+            <th className="text-end">
+              {filtered.reduce((s, r) => s + Number(r.absent_night || 0), 0)}
+            </th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  )}
+</section>
