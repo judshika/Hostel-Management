@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import RoleBadge from './RoleBadge';
+import NotificationBell from './NotificationBell';
 import '../styles/navbar.css';
 
 export default function NavBar() {
@@ -92,6 +93,9 @@ export default function NavBar() {
             </li>
             {user ? (
               <>
+                <li className="nav-item d-none d-md-block">
+                  <NotificationBell />
+                </li>
                 {(() => {
                   const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:8080/api').replace(/\/api$/, '');
                   const photo = user?.profile_photo ? API_ORIGIN + user.profile_photo : null;

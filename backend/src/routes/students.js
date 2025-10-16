@@ -3,6 +3,7 @@ import { pool } from "../config/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import bcrypt from "bcryptjs";
 import { sendEmail, templates } from "../routes/email.js";
+import { notifyRoles } from "../services/notify.js";
 
 const router = express.Router();
 
@@ -246,6 +247,49 @@ router.put(
       } catch (e) {
         return res.status(500).json({ message: "Failed to update user" });
       }
+    }
+
+    // If the caller is a Student (self-edit), notify Admin/Warden
+    if (req.user.role === "Student") {
+      (async () => {
+        try {
+          const [[u]] = await pool.query(
+            "SELECT first_name, last_name, email FROM users WHERE id=:id",
+            { id: stu.user_id }
+          );
+          const studentName = `${u?.first_name || ""} ${u?.last_name || ""}`.trim() || "Student";
+          const studentEmail = u?.email || "";
+          const link = `${process.env.APP_BASE_URL || ""}/students`;
+          const updatedKeys = [
+            ...sSets.map(s=>s.split('=')[0]),
+            ...uSets.map(s=>s.split('=')[0])
+          ].map(k => k.replace(/^[a-z_]+\./, '')).join(', ');
+
+          // Email recipients controlled by env, default Admin + Warden
+          const rolesEnv = (process.env.NOTIFY_ROLES_ON_PROFILE_EDIT || 'Admin,Warden')
+            .split(',').map(s => s.trim()).filter(Boolean);
+
+          // Email
+          const mail = templates.studentProfileUpdated({ studentName, studentEmail, fields: updatedKeys, link });
+          const [recips] = await pool.query(
+            `SELECT email FROM users WHERE role IN (${rolesEnv.map((_,i)=>`:r${i}`).join(',')}) AND is_active=1 AND email IS NOT NULL`,
+            Object.fromEntries(rolesEnv.map((r,i)=>[`r${i}`, r]))
+          );
+          const list = (recips || []).map(r => r.email).filter(Boolean);
+          if (list.length > 0) {
+            await sendEmail({ to: list.join(','), ...mail });
+          }
+
+          // In-app notifications
+          await notifyRoles(rolesEnv, {
+            title: `Student updated profile: ${studentName}`,
+            body: updatedKeys ? `Fields: ${updatedKeys}` : '',
+            link: '/students',
+          });
+        } catch (err) {
+          console.error('Failed to send profile update notifications:', err.message);
+        }
+      })();
     }
 
     res.json({ message: "Updated" });

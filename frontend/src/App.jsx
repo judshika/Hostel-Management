@@ -2,6 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import NavBar from './components/NavBar'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { NotificationsProvider } from './context/NotificationsContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -27,11 +28,12 @@ function HomeRouter(){
 export default function App(){
   return (
     <AuthProvider>
-      <NavBar />
-      <Routes>
-        <Route path="/" element={<HomeRouter />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      <NotificationsProvider>
+        <NavBar />
+        <Routes>
+          <Route path="/" element={<HomeRouter />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
         <Route path="/students" element={<ProtectedRoute roles={['Admin','Warden']}><Students/></ProtectedRoute>} />
         <Route path="/rooms" element={<ProtectedRoute roles={['Admin','Warden','Student']}><Rooms/></ProtectedRoute>} />
@@ -43,6 +45,7 @@ export default function App(){
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </NotificationsProvider>
     </AuthProvider>
   )
 }

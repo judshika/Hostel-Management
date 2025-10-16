@@ -68,31 +68,36 @@ Please log in and change your password soon.
       </div>
     `,
   }),
-  complaintNew: ({ title, studentName, studentEmail, createdAt }) => ({
+  complaintNew: ({ title, description = '', studentName, studentEmail, createdAt, link }) => ({
     subject: `New Complaint Submitted: ${title}`,
     text: `A new complaint has been submitted by ${studentName} (${studentEmail}).
 
 Title: ${title}
+Description: ${description}
 Submitted: ${createdAt}
 
-Please review it in the SmartHostel admin/warden portal.`,
+Review in portal: ${link}
+`,
     html: `
       <div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#333">
         <h3>New Complaint Submitted</h3>
         <p><b>Student:</b> ${studentName} &lt;${studentEmail}&gt;</p>
         <p><b>Title:</b> ${title}</p>
+        ${description ? `<p><b>Description:</b> ${description}</p>` : ''}
         <p><b>Submitted:</b> ${createdAt}</p>
-        <p>Please review it in the SmartHostel admin/warden portal.</p>
+        <p>Please review it in the SmartHostel portal: <a href="${link}">${link}</a></p>
       </div>
     `,
   }),
-  complaintResolved: ({ title, studentName }) => ({
+  complaintResolved: ({ title, studentName, link }) => ({
     subject: `Your Complaint Resolved: ${title}`,
     text: `Hello ${studentName},
 
 Your complaint "${title}" has been marked as Resolved.
 
 If anything still needs attention, please reply or submit a new complaint.
+ 
+View your complaints: ${link}
 
 – SmartHostel Management System`,
     html: `
@@ -100,7 +105,27 @@ If anything still needs attention, please reply or submit a new complaint.
         <p>Hello ${studentName},</p>
         <p>Your complaint <b>"${title}"</b> has been marked as <b>Resolved</b>.</p>
         <p>If anything still needs attention, please reply or submit a new complaint.</p>
+        <p>View your complaints: <a href="${link}">${link}</a></p>
         <p style="color:#888;font-size:13px;margin-top:20px">– SmartHostel Management System</p>
+      </div>
+    `,
+  }),
+  studentProfileUpdated: ({ studentName, studentEmail, fields = '', link }) => ({
+    subject: `Student Updated Profile: ${studentName || studentEmail}`,
+    text: `A student has updated their profile.
+
+Name: ${studentName}
+Email: ${studentEmail}
+${fields ? `Fields: ${fields}\n` : ''}
+Review: ${link}
+`,
+    html: `
+      <div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#333">
+        <h3>Student Updated Profile</h3>
+        <p><b>Name:</b> ${studentName}</p>
+        <p><b>Email:</b> ${studentEmail}</p>
+        ${fields ? `<p><b>Fields:</b> ${fields}</p>` : ''}
+        <p>Review in portal: <a href="${link}">${link}</a></p>
       </div>
     `,
   }),
