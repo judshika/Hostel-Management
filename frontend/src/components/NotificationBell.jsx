@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNotifications } from '../context/NotificationsContext';
 import { useNavigate } from 'react-router-dom';
 import '../styles/notifications.css';
@@ -6,6 +6,8 @@ import '../styles/notifications.css';
 export default function NotificationBell() {
   const { items, unread, markRead, markAllRead } = useNotifications() || {};
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
   const navigate = useNavigate();
 
   const top = useMemo(() => (items || []).slice(0, 10), [items]);
@@ -18,9 +20,33 @@ export default function NotificationBell() {
     if (it.link) navigate(it.link);
   };
 
+  function updatePosition() {
+    const el = btnRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const gap = 8;
+    const width = 360;
+    const left = Math.min(rect.right + gap, Math.max(8, window.innerWidth - width - 8));
+    const top = Math.min(rect.top, Math.max(8, window.innerHeight - 460)); // 460 ~= dropdown max height
+    setPos({ top, left });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const onResize = () => updatePosition();
+    const onScroll = () => updatePosition();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [open]);
+
   return (
     <div className="notif-wrap">
-      <button className="btn btn-outline-secondary btn-sm notif-bell-btn" onClick={() => setOpen(o=>!o)} aria-haspopup>
+      <button ref={btnRef} className="btn btn-outline-secondary btn-sm notif-bell-btn" onClick={() => setOpen(o=>!o)} aria-haspopup>
         {/* Bell icon */}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
           <path d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2Zm6-6v-5a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2Z"/>
@@ -28,27 +54,30 @@ export default function NotificationBell() {
         {unread > 0 && (<span className="notif-badge">{unread}</span>)}
       </button>
       {open && (
-        <div className="notif-dropdown card">
-          <div className="card-body p-2">
-            <div className="d-flex justify-content-between align-items-center mb-1">
-              <strong>Notifications</strong>
-              <button className="btn btn-link btn-sm" onClick={() => markAllRead()}>Mark all read</button>
+        <>
+          <div className="notif-backdrop" onClick={() => setOpen(false)} />
+          <div className="notif-dropdown card" style={{ position: 'fixed', top: pos.top, left: pos.left, width: 360 }}>
+            <div className="card-body p-2">
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <strong>Notifications</strong>
+                <button className="btn btn-link btn-sm" onClick={() => markAllRead()}>Mark all read</button>
+              </div>
+              {top.length === 0 ? (
+                <div className="text-muted small">No notifications</div>
+              ) : (
+                <ul className="list-unstyled mb-0 notif-list">
+                  {top.map((it) => (
+                    <li key={it.notification_id} className={`notif-item ${it.is_read ? 'read' : 'unread'}`} onClick={() => onItemClick(it)}>
+                      <div className="notif-title">{it.title}</div>
+                      {it.body && <div className="notif-body">{it.body}</div>}
+                      <div className="notif-time">{new Date(it.created_at).toLocaleString()}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {top.length === 0 ? (
-              <div className="text-muted small">No notifications</div>
-            ) : (
-              <ul className="list-unstyled mb-0 notif-list">
-                {top.map((it) => (
-                  <li key={it.notification_id} className={`notif-item ${it.is_read ? 'read' : 'unread'}`} onClick={() => onItemClick(it)}>
-                    <div className="notif-title">{it.title}</div>
-                    {it.body && <div className="notif-body">{it.body}</div>}
-                    <div className="notif-time">{new Date(it.created_at).toLocaleString()}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );

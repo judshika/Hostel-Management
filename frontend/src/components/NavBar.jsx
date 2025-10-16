@@ -76,21 +76,6 @@ export default function NavBar() {
 
           {/* Right menu */}
           <ul className="navbar-nav ms-auto align-items-center gap-2">
-            <li className="nav-item">
-              <button className="btn btn-outline-secondary btn-sm" onClick={toggleTheme} title={theme==='dark'?'Switch to light':'Switch to dark'}>
-                {theme === 'dark' ? (
-                  // sun icon
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zm10.48 0l1.79-1.8-1.41-1.41-1.8 1.79 1.42 1.42zM12 4V1h-0v3h0zm0 19v-3h0v3h0zM4 12H1v0h3v0zm19 0h-3v0h3v0zM6.76 19.16l-1.42 1.42-1.79-1.8 1.41-1.41 1.8 1.79zm10.48 0l1.8 1.79 1.41-1.41-1.79-1.8-1.42 1.42zM12 8a4 4 0 100 8 4 4 0 000-8z"/>
-                  </svg>
-                ) : (
-                  // moon icon
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
-                  </svg>
-                )}
-              </button>
-            </li>
             {user ? (
               <>
                 <li className="nav-item d-none d-md-block">

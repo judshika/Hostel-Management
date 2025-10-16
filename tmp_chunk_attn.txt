@@ -1,0 +1,11 @@
+    <div className="chipset">
+      <span className="chip chip-success">Present: {kpi.present}</span>
+      <span className="chip chip-danger">Absent: {kpi.absent}</span>
+      <span className="chip">{filtered.length} students</span>
+    </div>
+  </div>
+
+  {busy ? (
+    <div className="skeleton-wrap">
+      <div className="skeleton skeleton-bar" />
+      <div className="skeleton skeleton-table" />

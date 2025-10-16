@@ -86,7 +86,7 @@ export default function Attendance() {
         id: `${r.student_id}-${r.ym || r.date || month}`,
         student_id: r.student_id,
         name: r.name,
-        monthStr: r.ym || r.date || month,
+        dateStr: r.date || r.ym || month,
         present_day: presentDay,
         absent_day: absentDay,
         present_night: presentNight,
@@ -101,28 +101,11 @@ export default function Attendance() {
   const dgColumns = useMemo(() => {
     return [
       { field: 'name', headerName: 'Student', flex: 1, minWidth: 200 },
-      { field: 'monthStr', headerName: 'Month', width: 140 },
+      { field: 'dateStr', headerName: 'Date', width: 140 },
       { field: 'present_day', headerName: 'Day Present', type: 'number', width: 130, align: 'right', headerAlign: 'right' },
       { field: 'absent_day', headerName: 'Day Absent', type: 'number', width: 120, align: 'right', headerAlign: 'right' },
       { field: 'present_night', headerName: 'Night Present', type: 'number', width: 140, align: 'right', headerAlign: 'right' },
       { field: 'absent_night', headerName: 'Night Absent', type: 'number', width: 130, align: 'right', headerAlign: 'right' },
-      {
-        field: 'rate',
-        headerName: 'Overall Attendance',
-        sortable: true,
-        width: 220,
-        renderCell: (params) => {
-          const p = Number(params.row.present_total || 0);
-          const a = Number(params.row.absent_total || 0);
-          const total = p + a;
-          const ratio = total > 0 ? p / total : 0;
-          return (
-            <div style={{ width: '100%' }}>
-              <Bar ratio={ratio} present={p} absent={a} />
-            </div>
-          );
-        },
-      },
     ];
   }, []);
 
@@ -325,11 +308,11 @@ export default function Attendance() {
       {/* Table */}
 <section className="card card-pro">
   <div className="card-head head-inline">
-    <h6><Icon name="table" /> {month} — Attendance</h6>
+    <h6><Icon name="table" /> Attendance - {month}</h6>
     <div className="chipset">
       <span className="chip chip-success">Present: {kpi.present}</span>
       <span className="chip chip-danger">Absent: {kpi.absent}</span>
-      <span className="chip">{filtered.length} students</span>
+      <span className="chip">{filtered.length} records</span>
     </div>
   </div>
 
@@ -355,10 +338,10 @@ export default function Attendance() {
         disableRowSelectionOnClick
         getRowId={(row) => row.id}
         pageSizeOptions={[10, 25, 50, 100]}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 25, page: 0 } },
-          sorting: { sortModel: [{ field: 'absent_total', sort: 'desc' }] },
-        }}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 25, page: 0 } },
+                  sorting: { sortModel: [{ field: 'dateStr', sort: 'desc' }] },
+                }}
         slots={{ toolbar: GridToolbar }}
         slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 300 } } }}
       />
@@ -409,3 +392,5 @@ function Icon({ name }) {
       return null;
   }
 }
+
+

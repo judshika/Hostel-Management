@@ -27,15 +27,18 @@
 }
 
 .notif-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  width: 360px;
+  /* position is overridden inline when using portal */
   max-width: 90vw;
   z-index: 2000;
   box-shadow: 0 10px 30px rgba(0,0,0,0.12);
   border-radius: 12px;
   overflow: hidden;
+}
+
+.notif-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1999;
 }
 
 .notif-list {
@@ -62,4 +65,3 @@
   .notif-item.unread { background: rgba(255,255,255,0.06); }
   .notif-item:hover { background: rgba(99,102,241,0.18); }
 }
-
