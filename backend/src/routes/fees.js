@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../config/db.js';
 import { requireAuth } from '../middleware/auth.js';
+import { notifyRoles, notifyUser } from '../services/notify.js';
 
 const router = express.Router();
 
@@ -110,6 +111,33 @@ router.post('/pay', requireAuth(['Admin','Warden','Student']), async (req, res) 
   else if (paid < parseFloat(bill.total)) status = 'PARTIAL';
   else status = 'PAID';
   await pool.query('UPDATE bills SET status=:s WHERE bill_id=:id', { s: status, id: bill_id });
+  try {
+    const [[userRow]] = await pool.query(
+      `SELECT u.id, u.first_name, u.last_name
+       FROM students s JOIN users u ON u.id = s.user_id
+       WHERE s.student_id = :sid`,
+      { sid: bill.student_id }
+    );
+    const payerName = [userRow?.first_name, userRow?.last_name].filter(Boolean).join(' ') || 'Student';
+    const amtStr = Number(amount).toFixed(2);
+    const balance = Math.max(0, parseFloat(bill.total) - paid);
+
+    await notifyRoles(['Admin','Warden'], {
+      title: 'Fee payment recorded',
+      body: `${payerName} paid ${amtStr} for ${bill.month_year}. Status: ${status}. Ref: ${reference || 'N/A'}`,
+      link: '/fees'
+    });
+
+    if (userRow?.id) {
+      await notifyUser(userRow.id, {
+        title: 'Payment received',
+        body: `We received your payment of ${amtStr} for ${bill.month_year}. Remaining balance: ${balance.toFixed(2)}.`,
+        link: '/'
+      });
+    }
+  } catch (e) {
+    console.error('Notify on payment error:', e?.message || e);
+  }
   res.json({ message: 'Payment saved', status });
 });
 
